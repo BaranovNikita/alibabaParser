@@ -114,4 +114,22 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="File_Created" xml:space="preserve">
+    <value>Excel file created , you can find the file </value>
+  </data>
+  <data name="Save_File_Extension" xml:space="preserve">
+    <value>excel files (*.xls) | *.xls | All files(*.*) | *.*</value>
+  </data>
+  <data name="Load_page" xml:space="preserve">
+    <value>Load page html: </value>
+  </data>
+  <data name="Not_Response" xml:space="preserve">
+    <value>alibaba not response</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>ERROR</value>
+  </data>
+  <data name="Creating_file" xml:space="preserve">
+    <value>Creating excel file</value>
+  </data>
 </root>

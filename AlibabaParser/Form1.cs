@@ -1,85 +1,83 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 using AlibabaParser.models;
+using AlibabaParser.Properties;
 using HtmlAgilityPack;
 using Excel = Microsoft.Office.Interop.Excel;
 namespace AlibabaParser
 {
     public partial class Form1 : Form
     {
-        private string currentUrl;
-        private string currentCompany;
+        private string _currentUrl;
+        private string _currentCompany;
         public Form1()
         {
             InitializeComponent();
-            if (Properties.Settings.Default.items != null)
+            if (Settings.Default.items != null)
             {
-                foreach (var item in AlibabaParser.Properties.Settings.Default.items.Split(','))
+                foreach (var item in Settings.Default.items.Split(','))
                 {
                     if (!string.IsNullOrEmpty(item))
                         urlList.Items.Add(item);
                 }
             }
 
-            setBackgroundWorker();
+            SetBackgroundWorker();
         }
 
-        private void setBackgroundWorker()
+        private void SetBackgroundWorker()
         {
             backgroundWorker1.ProgressChanged += (sender, args) =>
             {
-                Console.WriteLine("args.ProgressPercentage: " + args.ProgressPercentage);
                 progressBar1.Value = args.ProgressPercentage;
                 if (args.ProgressPercentage == 0)
                 {
-                    progressLabel.Text = "Load page html: " + currentUrl;
+                    progressLabel.Text = Resources.Load_page + _currentUrl;
                 }
                 else
                 {
-                    progressLabel.Text = currentCompany;
+                    progressLabel.Text = _currentCompany;
                 }
 
             };
             backgroundWorker1.DoWork += (sender, args) =>
             {
-                Console.WriteLine("DOWORK");
-                HtmlAgilityPack.HtmlDocument document = null;
                 var companyList = new List<Company>();
-                foreach (ListViewItem item in getListViewItems(urlList))
+                foreach (ListViewItem item in GetListViewItems(urlList))
                 {
+                    HtmlAgilityPack.HtmlDocument document;
                     try
                     {
-                        document = getHtmlFromUrl(item.Text);
+                        document = GetHtmlFromUrl(item.Text);
                     }
                     catch (Exception e)
                     {
                         Console.WriteLine(e.Message);
-                        MessageBox.Show("alibaba not response", "ERROR");
+                        MessageBox.Show(Resources.Not_Response, Resources.Error);
+                        return;
                     }
-                    var currentPageCompany = CreateCompanyList(document, item.Text);
+                    var currentPageCompany = CreateCompanyList(document);
                     companyList.AddRange(currentPageCompany);
                 }
                 args.Result = companyList;
             };
             backgroundWorker1.RunWorkerCompleted += (sender, args) =>
             {
-                Console.WriteLine("COMPLETE");
                 var result = args.Result as List<Company>;
                 progressBar1.Value = 0;
-                progressLabel.Text = "Creating excel file";
+                progressLabel.Text = Resources.Creating_file;
                 DisplayInExcel(result);
             };
         }
 
-        private IEnumerable<Company> CreateCompanyList(HtmlAgilityPack.HtmlDocument document, string url)
+        private IEnumerable<Company> CreateCompanyList(HtmlAgilityPack.HtmlDocument document)
         {
             var nodes = document.DocumentNode.QuerySelectorAll(".item-main");
             var companyList = new List<Company>();
             foreach (var node in nodes)
             {
-                currentCompany = node.QuerySelector(".item-title h2.title").InnerText.Trim('\n').Trim();
+                _currentCompany = node.QuerySelector(".item-title h2.title").InnerText.Trim('\n').Trim();
                 var percent = Convert.ToInt32(Math.Round((double)companyList.Count / nodes.Count * 100));
                 backgroundWorker1.ReportProgress(percent > 100 ? 100 : percent);
                 var company = new Company
@@ -139,10 +137,10 @@ namespace AlibabaParser
             return companyList;
         }
 
-        private HtmlAgilityPack.HtmlDocument getHtmlFromUrl(string url)
+        private HtmlAgilityPack.HtmlDocument GetHtmlFromUrl(string url)
         {
             backgroundWorker1.ReportProgress(0);
-            currentUrl = url;
+            _currentUrl = url;
             var stringHtml = new System.Net.WebClient().DownloadString(url);
             var html = new HtmlAgilityPack.HtmlDocument();
             html.LoadHtml(stringHtml);
@@ -211,18 +209,15 @@ namespace AlibabaParser
 
         private void parseList_Click(object sender, EventArgs e)
         {
-
             backgroundWorker1.RunWorkerAsync();
-
-            // backgroundWorker1.CancelAsync();
         }
         private delegate ListView.ListViewItemCollection GetItems(ListView lstview);
 
-        private ListView.ListViewItemCollection getListViewItems(ListView lstview)
+        private ListView.ListViewItemCollection GetListViewItems(ListView lstview)
         {
             var temp = new ListView.ListViewItemCollection(new ListView());
             if (lstview.InvokeRequired)
-                return (ListView.ListViewItemCollection)Invoke(new GetItems(getListViewItems), lstview);
+                return (ListView.ListViewItemCollection)Invoke(new GetItems(GetListViewItems), lstview);
             foreach (ListViewItem item in lstview.Items)
                 temp.Add((ListViewItem)item.Clone());
             return temp;
@@ -268,7 +263,7 @@ namespace AlibabaParser
             var filePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\alibaba.xls";
             var saveFileDialog1 = new SaveFileDialog
             {
-                Filter = "excel files (*.xls) | *.xls | All files(*.*) | *.*",
+                Filter = Resources.Save_File_Extension,
                 RestoreDirectory = true
             };
 
@@ -282,7 +277,7 @@ namespace AlibabaParser
             workbook.Close(true, misValue, misValue);
             excelApp.Quit();
 
-            MessageBox.Show("Excel file created , you can find the file " + filePath);
+            MessageBox.Show(Resources.File_Created + filePath);
 
         }
 
@@ -292,11 +287,11 @@ namespace AlibabaParser
             var array = new string[urlList.Items.Count];
             foreach (ListViewItem item in urlList.Items)
             {
-                array[i] = urlList.Items[i].Text;
+                array[i] = item.Text;
                 i++;
             }
-            AlibabaParser.Properties.Settings.Default.items = string.Join(",", array);
-            AlibabaParser.Properties.Settings.Default.Save();
+            Settings.Default.items = string.Join(",", array);
+            Settings.Default.Save();
         }
     }
 }
